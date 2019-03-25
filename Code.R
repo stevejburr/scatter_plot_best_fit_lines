@@ -11,34 +11,82 @@ library(patchwork)
 make_plots <- function(x,y) {
 #model y using x (standard best fit line)
 line1 <- lm(y~x)$coef
+line1.slope <- line1[2]
+line1.intercept <- line1[1]
 #model x using y (what if x is actually predicted by y, not true)
 line2 <- lm(x~y)$coef
 #y = mx + c
 #(y-c) = mx
 #x = (1/m)y - (c/m)
+line2.slope <- (1/line2[2])
+line2.intercept <- -(line2[1]/line2[2])
 
 #calculate the principal components of x/y
 pca <- prcomp(cbind(x,y))$rotation
-slope.pca <- pca[2,1] / pca[1,1]
-intercept.pca <- mean(y) - (slope.pca * mean(x))
+pca.slope <- pca[2,1] / pca[1,1]
+pca.intercept <- mean(y) - (pca.slope * mean(x))
 
 ggplot() +
   geom_point(aes(x=x,y=y)) +
-  geom_abline(aes(slope=line1[2],intercept=line1[1]),colour="red") +
-  geom_abline(aes(slope=(1/line2[2]),intercept=-(line2[1]/line2[2])),colour="blue") +
-  geom_abline(aes(slope=slope.pca,intercept=intercept.pca)) -> plot1
+  #geom_abline(aes(slope=line1.slope,intercept=line1.intercept,colour="red") +
+  #geom_abline(aes(slope=line2.slope,intercept=line2.intercept),colour="blue") +
+  geom_abline(aes(slope=pca.slope,intercept=pca.intercept)) -> plot1
 
 
 
 #calculate residuals of three lines at each real point x + plot these
+
 data <- data.frame(x,y)
 data %>%
-  mutate(yhat_line1=(x*line1[2]+line1[1]),
+  mutate(yhat_line1=(x*line1.slope+line1.intercept),
+         xhat_line1=(y-line1.intercept)/line1.slope,
          residual_line1=-(yhat_line1-y),
-         yhat_line2=(x*line2[2]+line2[1]),
+         yhat_line2=(x*line2.slope+line2.intercept),
+         xhat_line2=(y-line2.intercept)/line2.slope,
          residual_line2=-(yhat_line2-y),
-         yhat_line3=(x*slope.pca+intercept.pca),
-         residual_line3=-(yhat_line3-y)) %>%
+         yhat_line3=(x*pca.slope+pca.intercept),
+         xhat_line3=(y-pca.intercept)/pca.slope,
+         residual_line3=-(yhat_line3-y),
+         #https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
+         a=pca.slope,
+         b=-1,
+         c=pca.intercept,
+         xhat_line3=(b*(b*x-a*y)-(a*c))/((a*a)+(b*b)),
+         yhat_line3=(a*(-b*x+a*y)-(b*c))/((a*a)+(b*b)))%>% 
+  select(-c(a,b,c))-> data
+#currently residual_line# shows the ls residuals for y ~ x
+#calculate all the residuals using the formula...
+
+#express these as "line start / line end" coords with different labels, then can easily do facetted residual plots + calcs
+
+#draw residual lines for fitting y~x
+data %>%
+  ggplot()+
+  #geom_point(aes(x=x,y=yhat_line1),shape=2) +
+  geom_point(aes(x=x,y=y))+
+  geom_segment(aes(x=x,y=y,xend=x,yend=yhat_line1))+
+  geom_abline(aes(slope=line1.slope,intercept=line1.intercept),colour="red") -> plot1a
+
+#draw residual lines for fitting x~y
+data %>%
+  ggplot()+
+  geom_point(aes(x=xhat_line2,y=y),shape=2) +
+  geom_point(aes(x=x,y=y))+
+  geom_segment(aes(x=x,y=y,xend=xhat_line2,yend=y))+
+  geom_abline(aes(slope=line2.slope,intercept=line2.intercept),colour="blue") -> plot1a
+
+
+#draw residual lines for fitting via pca
+data %>%
+  ggplot()+
+  geom_point(aes(x=xhat_line3,y=yhat_line3),shape=2) +
+  geom_point(aes(x=x,y=y))+
+  geom_segment(aes(x=x,y=y,xend=xhat_line3,yend=yhat_line3))+
+  geom_abline(aes(slope=pca.slope,intercept=pca.intercept),colour="black") -> plot1a
+
+plot1+plot1a
+
+data %>%
   select(x,starts_with("resid")) %>% 
   gather(key="key",value="value",-x) %>%
   ggplot(aes(x=x,y=value,color=key)) +
@@ -57,9 +105,9 @@ data %>%
 
 #simulate x/y using simple sets of distributions
 set.seed(123)
-x <- rnorm(1000,mean=100,sd=10)
+x <- rnorm(50,mean=100,sd=10)
 # y = 0.8 * x + noise
-y <- 0.8 * x + rnorm(1000,mean=10,sd=8)
+y <- 0.8 * x + rnorm(50,mean=10,sd=8)
 make_plots(x,y)
 
 #actual multivariate normal case:
