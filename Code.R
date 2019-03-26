@@ -26,78 +26,72 @@ pca <- prcomp(cbind(x,y))$rotation
 pca.slope <- pca[2,1] / pca[1,1]
 pca.intercept <- mean(y) - (pca.slope * mean(x))
 
-ggplot() +
-  geom_point(aes(x=x,y=y)) +
-  #geom_abline(aes(slope=line1.slope,intercept=line1.intercept,colour="red") +
-  #geom_abline(aes(slope=line2.slope,intercept=line2.intercept),colour="blue") +
-  geom_abline(aes(slope=pca.slope,intercept=pca.intercept)) -> plot1
-
-
-
-#calculate residuals of three lines at each real point x + plot these
-
+#calculate predicted positions on each line, and corresponding "residual" lines
 data <- data.frame(x,y)
 data %>%
   mutate(yhat_line1=(x*line1.slope+line1.intercept),
-         xhat_line1=(y-line1.intercept)/line1.slope,
-         residual_line1=-(yhat_line1-y),
-         yhat_line2=(x*line2.slope+line2.intercept),
+         xhat_line1=x,
+         yhat_line2=y,
          xhat_line2=(y-line2.intercept)/line2.slope,
-         residual_line2=-(yhat_line2-y),
-         yhat_line3=(x*pca.slope+pca.intercept),
-         xhat_line3=(y-pca.intercept)/pca.slope,
-         residual_line3=-(yhat_line3-y),
          #https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
          a=pca.slope,
          b=-1,
          c=pca.intercept,
          xhat_line3=(b*(b*x-a*y)-(a*c))/((a*a)+(b*b)),
-         yhat_line3=(a*(-b*x+a*y)-(b*c))/((a*a)+(b*b)))%>% 
-  select(-c(a,b,c))-> data
-#currently residual_line# shows the ls residuals for y ~ x
-#calculate all the residuals using the formula...
+         yhat_line3=(a*(-b*x+a*y)-(b*c))/((a*a)+(b*b)),
+         #want slopes/intercepts in this data frame:
+         slope_line1=line1.slope,
+         slope_line2=line2.slope,
+         slope_line3=pca.slope,
+         intercept_line1=line1.intercept,
+         intercept_line2=line2.intercept,
+         intercept_line3=pca.intercept
+         )%>% 
+  select(-c(a,b,c)) %>%
+  #transpose to a long form
+  gather(key="key",value="value",-c(x,y)) %>% 
+  # have "yhat_line1", want two colums of "yhat" "line1"
+  separate(key,c("type","line"),"_") %>% 
+  #then transpose so we have cols for xhat, yhat etc
+  spread(key="type",value="value") %>%
+  #calculate the residuals for each method
+  #i.e. the distance from the point to the line
+  mutate(line=case_when(
+           line=="line1" ~ "y~x",
+           line=="line2" ~ "x~y",
+           line=="line3" ~ "PCA"
+         ),
+         line=factor(line,levels=c("y~x","x~y","PCA"))) -> data
 
-#express these as "line start / line end" coords with different labels, then can easily do facetted residual plots + calcs
 
-#draw residual lines for fitting y~x
-data %>%
-  ggplot()+
-  #geom_point(aes(x=x,y=yhat_line1),shape=2) +
-  geom_point(aes(x=x,y=y))+
-  geom_segment(aes(x=x,y=y,xend=x,yend=yhat_line1))+
-  geom_abline(aes(slope=line1.slope,intercept=line1.intercept),colour="red") -> plot1a
+#facetted scatter plot with three sets of residual lines
+data %>% 
+  ggplot() +
+  facet_grid(line ~ .) +
+  geom_point(aes(x=x,y=y,colour=line))+
+  geom_abline(aes(slope=slope,intercept=intercept,colour=line))+
+  geom_segment(aes(x=x,y=y,xend=xhat,yend=yhat,colour=line))+
+  coord_equal() +
+  theme_minimal() +
+  theme(panel.grid=element_blank()) -> plot1
 
-#draw residual lines for fitting x~y
-data %>%
-  ggplot()+
-  geom_point(aes(x=xhat_line2,y=y),shape=2) +
-  geom_point(aes(x=x,y=y))+
-  geom_segment(aes(x=x,y=y,xend=xhat_line2,yend=y))+
-  geom_abline(aes(slope=line2.slope,intercept=line2.intercept),colour="blue") -> plot1a
+#basic scatter plot
+ggplot() +
+  geom_point(data=distinct(data,x,y),
+             aes(x=x,y=y),colour="grey50")+
+  geom_abline(data=distinct(data,line,slope,intercept),
+              aes(slope=slope,intercept=intercept,colour=line))+
+  coord_equal() +
+  theme_minimal() +
+  theme(panel.grid=element_blank()) -> plot2
 
 
-#draw residual lines for fitting via pca
-data %>%
-  ggplot()+
-  geom_point(aes(x=xhat_line3,y=yhat_line3),shape=2) +
-  geom_point(aes(x=x,y=y))+
-  geom_segment(aes(x=x,y=y,xend=xhat_line3,yend=yhat_line3))+
-  geom_abline(aes(slope=pca.slope,intercept=pca.intercept),colour="black") -> plot1a
+#need to transpose the data again to be able to do the residuals
+#want a 3 x 3 grid, where we have 3 distance types (x,y,x+y) and 3 lines...
 
-plot1+plot1a
-
-data %>%
-  select(x,starts_with("resid")) %>% 
-  gather(key="key",value="value",-x) %>%
-  ggplot(aes(x=x,y=value,color=key)) +
-  facet_wrap(key ~ .) +
-  geom_point() +
-  geom_smooth() +
-  scale_color_manual(values=c("residual_line1"="red",
-                              "residual_line2"="blue",
-                              "residual_line3"="black"))-> plot2
-
-  print(plot1 + plot2)
+#TO DO!!
+  
+print(plot1+plot2)
   
 
 }
