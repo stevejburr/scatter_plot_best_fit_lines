@@ -88,9 +88,19 @@ ggplot() +
 
 #need to transpose the data again to be able to do the residuals
 #want a 3 x 3 grid, where we have 3 distance types (x,y,x+y) and 3 lines...
+head(data)
 
-#TO DO!!
-  
+data %>%
+  mutate(distance_x = sqrt((xhat-x)**2),
+         distance_y = sqrt((yhat-x)**2),
+         distance_cart = sqrt((xhat-x)**2+(yhat-y)**2)
+         ) %>%
+  select(x,y,line,starts_with("distance")) %>%
+  gather(key="key",value="value",-c(x,y,line)) %>%
+  ggplot()+
+  facet_grid(line ~ key) +
+  geom_point(aes(x=x,y=value,colour=line))
+
 print(plot1+plot2)
   
 
@@ -105,70 +115,70 @@ y <- 0.8 * x + rnorm(50,mean=10,sd=8)
 make_plots(x,y)
 
 #actual multivariate normal case:
-mean <- c(100,90)
-sigma <- as.matrix(rbind(c(1,0.6),c(0.6,1)))
-set.seed(123)
-data.matrix <- rmvnorm(1000,mean,sigma)
-x <- data.matrix[,1]
-y <- data.matrix[,2]
-
-make_plots(x,y)
-
-
-#highly correlated rvnorm
-mean <- c(100,90)
-sigma <- as.matrix(rbind(c(1,0.9),c(0.9,1)))
-set.seed(123)
-data.matrix <- rmvnorm(1000,mean,sigma)
-x <- data.matrix[,1]
-y <- data.matrix[,2]
-
-make_plots(x,y)
-
-
-
-#lowly correlated rvnorm
-mean <- c(100,90)
-sigma <- as.matrix(rbind(c(1,0.2),c(0.2,1)))
-set.seed(123)
-data.matrix <- rmvnorm(1000,mean,sigma)
-x <- data.matrix[,1]
-y <- data.matrix[,2]
-
-make_plots(x,y)
-
-
-#look at what if we are measuring the wrong way round
-set.seed(123)
-y <- rnorm(1000,mean=100,sd=10)
-# y = 0.8 * x + noise
-x <- 0.8 * y + rnorm(1000,mean=10,sd=8)
-make_plots(x,y)
-
-#look at first approach with higher noise...
-
-set.seed(123)
-x <- rnorm(1000,mean=100,sd=10)
-# y = 0.8 * x + noise
-y <- 0.8 * x + rnorm(1000,mean=20,sd=10)
-make_plots(x,y)
-
-
-#look at what if we are measuring the wrong way round + high noise
-set.seed(123)
-y <- rnorm(1000,mean=100,sd=10)
-# y = 0.8 * x + noise
-x <- 0.8 * y + rnorm(1000,mean=20,sd=10)
-make_plots(x,y)
-
-
-
-#make more stretched out
-set.seed(123)
-x <- rnorm(1000,mean=100,sd=20)
-# y = 0.8 * x + noise
-y <- 0.8 * x + rnorm(1000,mean=30,sd=5)
-make_plots(x,y)
+# mean <- c(100,90)
+# sigma <- as.matrix(rbind(c(1,0.6),c(0.6,1)))
+# set.seed(123)
+# data.matrix <- rmvnorm(1000,mean,sigma)
+# x <- data.matrix[,1]
+# y <- data.matrix[,2]
+# 
+# make_plots(x,y)
+# 
+# 
+# #highly correlated rvnorm
+# mean <- c(100,90)
+# sigma <- as.matrix(rbind(c(1,0.9),c(0.9,1)))
+# set.seed(123)
+# data.matrix <- rmvnorm(1000,mean,sigma)
+# x <- data.matrix[,1]
+# y <- data.matrix[,2]
+# 
+# make_plots(x,y)
+# 
+# 
+# 
+# #lowly correlated rvnorm
+# mean <- c(100,90)
+# sigma <- as.matrix(rbind(c(1,0.2),c(0.2,1)))
+# set.seed(123)
+# data.matrix <- rmvnorm(1000,mean,sigma)
+# x <- data.matrix[,1]
+# y <- data.matrix[,2]
+# 
+# make_plots(x,y)
+# 
+# 
+# #look at what if we are measuring the wrong way round
+# set.seed(123)
+# y <- rnorm(1000,mean=100,sd=10)
+# # y = 0.8 * x + noise
+# x <- 0.8 * y + rnorm(1000,mean=10,sd=8)
+# make_plots(x,y)
+# 
+# #look at first approach with higher noise...
+# 
+# set.seed(123)
+# x <- rnorm(1000,mean=100,sd=10)
+# # y = 0.8 * x + noise
+# y <- 0.8 * x + rnorm(1000,mean=20,sd=10)
+# make_plots(x,y)
+# 
+# 
+# #look at what if we are measuring the wrong way round + high noise
+# set.seed(123)
+# y <- rnorm(1000,mean=100,sd=10)
+# # y = 0.8 * x + noise
+# x <- 0.8 * y + rnorm(1000,mean=20,sd=10)
+# make_plots(x,y)
+# 
+# 
+# 
+# #make more stretched out
+# set.seed(123)
+# x <- rnorm(1000,mean=100,sd=20)
+# # y = 0.8 * x + noise
+# y <- 0.8 * x + rnorm(1000,mean=30,sd=5)
+# make_plots(x,y)
 
 
 
