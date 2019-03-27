@@ -86,24 +86,8 @@ ggplot() +
   theme(panel.grid=element_blank()) -> plot2
 
 
-#need to transpose the data again to be able to do the residuals
-#want a 3 x 3 grid, where we have 3 distance types (x,y,x+y) and 3 lines...
-head(data)
-
-data %>%
-  mutate(distance_x = sqrt((xhat-x)**2),
-         distance_y = sqrt((yhat-x)**2),
-         distance_cart = sqrt((xhat-x)**2+(yhat-y)**2)
-         ) %>%
-  select(x,y,line,starts_with("distance")) %>%
-  gather(key="key",value="value",-c(x,y,line)) %>%
-  ggplot()+
-  facet_grid(line ~ key) +
-  geom_point(aes(x=x,y=value,colour=line))
-
 print(plot1+plot2)
   
-
 }
 
 
