@@ -3,6 +3,10 @@ library(tidyverse)
 library(mvtnorm)
 library(patchwork)
 
+
+library(scales)
+show_col(hue_pal()(3))
+
 #to do:
 #update labels to use the correct names
 #potential have 3 or 4 different types of data, and a plot for each
