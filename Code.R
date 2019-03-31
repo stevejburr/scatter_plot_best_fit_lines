@@ -89,29 +89,76 @@ ggplot() +
   theme_minimal() +
   theme(panel.grid=element_blank()) -> plot2
 
+#add conditional mean of y given a banded value of x to a basic scatter plot
+data %>% 
+  distinct(x,y) -> pairs
+#use cut to create evenly sized groups
+pairs$x_group <- cut(pairs$x,5)
+
+pairs %>%
+  group_by(x_group) %>%
+  summarise(y_bar = mean(y),
+            max_x=max(x),
+            min_x=min(x)) -> condMeans
+
+plot2 +
+  geom_segment(data=condMeans,
+               aes(x=min_x,xend=max_x,y=y_bar,yend=y_bar)) -> plot3
+
+#gelman / hill plot, look at standardised variables
+stdize <- function(x){(x-mean(x))/sd(x)}
+
+stdData <- data.frame(x,y)
+stdData %>% 
+  mutate_all(funs(stdize,mean,sd)) -> stdData
+
+stdlm <- lm(y_stdize ~ x_stdize, data=stdData)
+
+stdData$slope <- coef(stdlm)[2]
+stdData$intercept <- coef(stdlm)[1]
+stdData$y_hat <- (stdData$x_stdize * stdData$slope) + stdData$intercept
+
+ggplot(stdData) +
+  geom_vline(aes(xintercept=0),colour="grey80")+
+  geom_hline(aes(yintercept=0),colour="grey80")+
+  geom_point(aes(x=x_stdize,y=y_stdize),colour="grey50") +
+  geom_abline(aes(slope=slope,intercept=intercept),colour="#F8766D") +
+  geom_abline(aes(slope=1,intercept=0),colour="#F8766D",linetype=2) +
+  scale_y_continuous("Standard deviations from mean of y") +
+  scale_x_continuous("Standard deviations from mean of x")+
+  coord_equal() +
+  theme_minimal()+
+  theme(panel.grid=element_blank(),
+        axis.title=element_text(colour="grey50"),
+        axis.text=elemnt_text(colour="grey50"),
+        text=element_text(colour="grey50")) +
+  labs(title="Illustration of regression to the mean using standardised variables.",
+       subtitle="With standardised variables, the gradient of the regression line is the correlation between the two variables.\nIf there is perfect correlation, then this gradient is equal to 1 (dotted line).\nIf the correlation is less than this then we will observe 'regression to the mean'.\nIf x is say 2sd from the mean of x, then y will be predicted to be 2*gradients from the mean of y.\nFor a gradient of less than 1, this will mean that y is predicted to be closer to the mean than x, this is regression to the mean.") -> plot4
 
 print(plot1+plot2)
-  
+print(plot3)
+print(plot4)
 }
 
 
 #simulate x/y using simple sets of distributions
 set.seed(123)
-x <- rnorm(50,mean=100,sd=10)
+x <- rnorm(500,mean=100,sd=10)
 # y = 0.8 * x + noise
-y <- 0.8 * x + rnorm(50,mean=10,sd=8)
+y <- 0.8 * x + rnorm(500,mean=10,sd=8)
 make_plots(x,y)
 
+
 #actual multivariate normal case:
-# mean <- c(100,90)
-# sigma <- as.matrix(rbind(c(1,0.6),c(0.6,1)))
-# set.seed(123)
-# data.matrix <- rmvnorm(1000,mean,sigma)
-# x <- data.matrix[,1]
-# y <- data.matrix[,2]
-# 
-# make_plots(x,y)
-# 
+mean <- c(100,100)
+sigma <- as.matrix(rbind(c(1,0.6),c(0.6,1)))
+set.seed(123)
+data.matrix <- rmvnorm(100,mean,sigma)
+x <- data.matrix[,1]
+y <- data.matrix[,2]
+
+make_plots(x,y)
+
 # 
 # #highly correlated rvnorm
 # mean <- c(100,90)
