@@ -130,7 +130,7 @@ ggplot(stdData) +
   theme_minimal()+
   theme(panel.grid=element_blank(),
         axis.title=element_text(colour="grey50"),
-        axis.text=elemnt_text(colour="grey50"),
+        axis.text=element_text(colour="grey50"),
         text=element_text(colour="grey50")) +
   labs(title="Illustration of regression to the mean using standardised variables.",
        subtitle="With standardised variables, the gradient of the regression line is the correlation between the two variables.\nIf there is perfect correlation, then this gradient is equal to 1 (dotted line).\nIf the correlation is less than this then we will observe 'regression to the mean'.\nIf x is say 2sd from the mean of x, then y will be predicted to be 2*gradients from the mean of y.\nFor a gradient of less than 1, this will mean that y is predicted to be closer to the mean than x, this is regression to the mean.") -> plot4
